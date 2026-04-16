@@ -189,9 +189,5 @@ gcc exemplos/dungeon_crawler.c -o dungeon -lm
 
 ## Licença
 
-Defina conforme desejado (exemplo: MIT).
-
-## Autor
-
-Bruno Dos Santos Umpierre
+ MIT.
 
