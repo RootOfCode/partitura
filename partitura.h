@@ -1,15 +1,15 @@
 /*
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║                           PARTITURA.H  v3.0                             ║
- * ║          Biblioteca de Sons e Músicas Estilo Retrô para Jogos           ║
- * ║                     (MS-DOS / PC-98 / Chip Music)                       ║
+ * ║                           PARTITURA.H  v3.0                              ║
+ * ║          Biblioteca de Sons e Músicas Estilo Retrô para Jogos            ║
+ * ║                     (MS-DOS / PC-98 / Chip Music)                        ║
  * ╠══════════════════════════════════════════════════════════════════════════╣
  * ║  §1  Constantes              §17 FM         §27 Ring Mod   §37 Env Pitch  ║
  * ║  §2  Frequências             §18 Wavetable  §28 Noise Gate §38 Sínt.Adit. ║
  * ║  §3  Durações                §19 Eco/Chorus §29 Player PCM §39 Karplus-S. ║
  * ║  §4  Enumerações             §20 Automação  §30 Loader WAV §40 Metrônomo  ║
  * ║  §5  Estruturas              §21 Escalas    §31 Phaser     §41 Presets    ║
- * ║  §6  Funções internas        §22 Drum Mach. §32 LFO global §42 Wah-Wah   ║
+ * ║  §6  Funções internas        §22 Drum Mach. §32 LFO global §42 Wah-Wah    ║
  * ║  §7  Contexto                §23 Export WAV §33 Arpejador  §43 Widener    ║
  * ║  §8  Controle de canais      §24 Reverb     §34 Polyphony  §44 Recorder   ║
  * ║  §9  Envelope e efeitos      §25 EQ 3 band. §35 Transpor   §45 Tempo/BPM  ║
@@ -19,11 +19,11 @@
  * ║  §13 Padrões e sequenciador                                               ║
  * ║  §14 Consultas de estado     v3.0 — Domínio público / Zero-Clause BSD    ║
  * ║  §15 Macros de conveniência  USO: #include "partitura.h"  -lm            ║
- * ║  §16 Filtro SVF por canal                                                 ║
+ * ║  §16 Filtro SVF por canal                                                ║
  * ╠══════════════════════════════════════════════════════════════════════════╣
- * ║  USO  : #include "partitura.h"                                          ║
- * ║  DEPS : stdint stdlib string math stdio  (-lm)                          ║
- * ║  LICENÇA: Domínio público / Zero-Clause BSD                             ║
+ * ║  USO  : #include "partitura.h"                                           ║
+ * ║  DEPS : stdint stdlib string math stdio  (-lm)                           ║
+ * ║  LICENÇA: MIT                                                            ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
