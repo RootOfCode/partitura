@@ -179,9 +179,9 @@ pt_swing_dur()
 - Live coding musical
 - Síntese embarcada
 
-## Compilação Manual
+## Compilação
 
-Sem Makefile:
+Sem Makefile
 
 ```
 gcc exemplos/dungeon_crawler.c -o dungeon -lm
@@ -189,5 +189,4 @@ gcc exemplos/dungeon_crawler.c -o dungeon -lm
 
 ## Licença
 
- MIT.
-
+MiT

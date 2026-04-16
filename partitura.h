@@ -703,7 +703,8 @@ static inline void pt_gerar_amostras(PT_Contexto *ctx,int16_t *buf,int n){
             float lfo=sinf(ph->fase_lfo*2*PT_PI);
             if(ph->modo_flanger){
                 int d=(int)(ctx->taxa_amostra*0.001f*(1+ph->profundidade*11*(0.5f+0.5f*lfo)));
-                if(d<1)d=1;if(d>=4410)d=4409;
+                if(d<1)d=1;
+                if(d>=4410)d=4409;
                 int rd=(ph->cab_fl-d+4410)%4410;
                 float fl=ph->buf_fl[0][rd],fr=ph->buf_fl[1][rd];
                 ph->buf_fl[0][ph->cab_fl]=esq+fl*ph->realimentacao;
@@ -723,7 +724,8 @@ static inline void pt_gerar_amostras(PT_Contexto *ctx,int16_t *buf,int n){
         if(ctx->chorus.ativo){PT_Chorus *ch=&ctx->chorus;
             float lfo=sinf(ch->fase_lfo*2*PT_PI); ch->fase_lfo+=ch->taxa/ctx->taxa_amostra; if(ch->fase_lfo>=1)ch->fase_lfo-=1;
             int d=(int)((ch->prof_ms/1000.f)*(0.5f+0.5f*lfo)*ctx->taxa_amostra);
-            if(d<1)d=1;if(d>=PT_CHORUS_BUF)d=PT_CHORUS_BUF-1;
+            if(d<1)d=1;
+            if(d>=PT_CHORUS_BUF)d=PT_CHORUS_BUF-1;
             int rd=(ch->cabeca-d+PT_CHORUS_BUF)%PT_CHORUS_BUF;
             float cl=ch->buf_l[rd],cr=ch->buf_r[rd];
             ch->buf_l[ch->cabeca]=esq; ch->buf_r[ch->cabeca]=dir;
@@ -776,7 +778,8 @@ static inline void pt_gerar_amostras_mono(PT_Contexto *ctx,int16_t *buf,int n){
 static inline void pt_gerar_amostras_float(PT_Contexto *ctx,float *buf,int n){
     int16_t *tmp=(int16_t*)malloc((size_t)n*2*sizeof(int16_t));if(!tmp)return;
     pt_gerar_amostras(ctx,tmp,n);
-    for(int i=0;i<n*2;i++)buf[i]=tmp[i]/32767.f; free(tmp);
+    for(int i=0;i<n*2;i++)buf[i]=tmp[i]/32767.f;
+    free(tmp);
 }
 
 /* ====================================================================
@@ -1033,11 +1036,13 @@ static inline void pt_desativar_compressor(PT_Contexto *ctx){ctx->compressor.ati
  * ==================================================================== */
 
 static inline void pt_auto_volume_iniciar(PT_Contexto *ctx,int c,int rep){
-    if(c<0||c>=ctx->num_canais)return;memset(&ctx->canais[c].auto_volume,0,sizeof(PT_Automacao));
+    if(c<0||c>=ctx->num_canais){return;}
+    memset(&ctx->canais[c].auto_volume,0,sizeof(PT_Automacao));
     ctx->canais[c].auto_volume.repetir=rep;ctx->canais[c].auto_volume.ativo=1;
 }
 static inline void pt_auto_volume_keyframe(PT_Contexto *ctx,int c,float t,float v){
-    if(c<0||c>=ctx->num_canais)return;PT_Automacao *a=&ctx->canais[c].auto_volume;if(a->num_kf>=PT_AUTO_KF_MAX)return;
+    if(c<0||c>=ctx->num_canais){return;}
+    PT_Automacao *a=&ctx->canais[c].auto_volume;if(a->num_kf>=PT_AUTO_KF_MAX)return;
     a->tempos[a->num_kf]=t;a->valores[a->num_kf]=pt__clampf(v,0,1);a->num_kf++;
 }
 static inline void pt_auto_volume_parar(PT_Contexto *ctx,int c){if(c>=0&&c<ctx->num_canais)ctx->canais[c].auto_volume.ativo=0;}
@@ -1045,11 +1050,13 @@ static inline void pt_auto_volume_fade(PT_Contexto *ctx,int c,float vi,float vf,
     pt_auto_volume_iniciar(ctx,c,0);pt_auto_volume_keyframe(ctx,c,0,vi);pt_auto_volume_keyframe(ctx,c,dur,vf);
 }
 static inline void pt_auto_pitch_iniciar(PT_Contexto *ctx,int c,int rep){
-    if(c<0||c>=ctx->num_canais)return;memset(&ctx->canais[c].auto_pitch,0,sizeof(PT_Automacao));
+    if(c<0||c>=ctx->num_canais){return;}
+    memset(&ctx->canais[c].auto_pitch,0,sizeof(PT_Automacao));
     ctx->canais[c].auto_pitch.repetir=rep;ctx->canais[c].auto_pitch.ativo=1;
 }
 static inline void pt_auto_pitch_keyframe(PT_Contexto *ctx,int c,float t,float mult){
-    if(c<0||c>=ctx->num_canais)return;PT_Automacao *a=&ctx->canais[c].auto_pitch;if(a->num_kf>=PT_AUTO_KF_MAX)return;
+    if(c<0||c>=ctx->num_canais){return;}
+    PT_Automacao *a=&ctx->canais[c].auto_pitch;if(a->num_kf>=PT_AUTO_KF_MAX)return;
     a->tempos[a->num_kf]=t;a->valores[a->num_kf]=mult>0?mult:1;a->num_kf++;
 }
 static inline void pt_auto_pitch_parar(PT_Contexto *ctx,int c){if(c>=0&&c<ctx->num_canais)ctx->canais[c].auto_pitch.ativo=0;}
@@ -1065,7 +1072,8 @@ static const int pt__iv_acd[][5]={{0,4,7,-1,-1},{0,3,7,-1,-1},{0,3,6,-1,-1},{0,4
 static inline void pt_gerar_escala(float raiz,PT_TipoEscala tipo,float *notas,int *num,int oitavas){
     const int *iv=pt__iv_esc[(int)tipo];int n=0;
     for(int o=0;o<oitavas;o++)for(int i=0;iv[i]>=0&&n<13*oitavas;i++)notas[n++]=raiz*powf(2.f,(iv[i]+o*12)/12.f);
-    if(n<13*oitavas)notas[n++]=raiz*powf(2.f,(float)oitavas);if(num)*num=n;
+    if(n<13*oitavas)notas[n++]=raiz*powf(2.f,(float)oitavas);
+    if(num)*num=n;
 }
 static inline float pt_nota_escala(float raiz,PT_TipoEscala tipo,int grau){
     const int *iv=pt__iv_esc[(int)tipo];int tam=0;while(iv[tam]>=0)tam++;if(!tam)return raiz;
@@ -1073,11 +1081,14 @@ static inline float pt_nota_escala(float raiz,PT_TipoEscala tipo,int grau){
 }
 static inline int pt_gerar_acorde(float raiz,PT_TipoAcorde tipo,float *notas){
     const int *iv=pt__iv_acd[(int)tipo];int n=0;
-    for(;iv[n]>=0&&n<5;n++)notas[n]=raiz*powf(2.f,iv[n]/12.f);return n;
+    for(;iv[n]>=0&&n<5;n++)notas[n]=raiz*powf(2.f,iv[n]/12.f);
+    return n;
 }
 static inline int pt_tocar_acorde(PT_Contexto *ctx,float raiz,PT_TipoAcorde tipo,int cb,int v,PT_FormaOnda fo){
     float ns[5];int n=pt_gerar_acorde(raiz,tipo,ns);
-    for(int i=0;i<n&&(cb+i)<ctx->num_canais;i++)pt_tocar_nota(ctx,cb+i,ns[i],v,fo);return n;
+    for(int i=0;i<n&&(cb+i)<ctx->num_canais;i++)
+        pt_tocar_nota(ctx,cb+i,ns[i],v,fo);
+    return n;
 }
 static inline void pt_parar_acorde(PT_Contexto *ctx,int cb,int n){
     for(int i=0;i<n&&(cb+i)<ctx->num_canais;i++)pt_parar_nota(ctx,cb+i);
@@ -1093,13 +1104,16 @@ static inline void pt_iniciar_percussao(PT_PadraoPercussao *d,int cb,int nt,int 
     for(int t=0;t<PT_DRUM_TRILHAS_MAX;t++){d->frequencias[t]=200;d->ondas[t]=PT_RUIDO_LFSR;}
 }
 static inline void pt_drum_passo(PT_PadraoPercussao *d,int t,int p,int v){
-    if(t<0||t>=PT_DRUM_TRILHAS_MAX||p<0||p>=PT_DRUM_PASSOS_MAX)return;d->passos[t][p]=(uint8_t)pt__clampf((float)v,0,15);
+    if(t<0||t>=PT_DRUM_TRILHAS_MAX||p<0||p>=PT_DRUM_PASSOS_MAX){return;}
+    d->passos[t][p]=(uint8_t)pt__clampf((float)v,0,15);
 }
 static inline void pt_drum_preenchimento(PT_PadraoPercussao *d,int t,uint32_t bits,int v){
-    if(t<0||t>=PT_DRUM_TRILHAS_MAX)return;for(int p=0;p<d->num_passos;p++)d->passos[t][p]=(bits&(1u<<p))?(uint8_t)v:0;
+    if(t<0||t>=PT_DRUM_TRILHAS_MAX){return;}
+    for(int p=0;p<d->num_passos;p++)d->passos[t][p]=(bits&(1u<<p))?(uint8_t)v:0;
 }
 static inline void pt_drum_som(PT_PadraoPercussao *d,int t,float f,PT_FormaOnda o){
-    if(t<0||t>=PT_DRUM_TRILHAS_MAX)return;d->frequencias[t]=f;d->ondas[t]=o;
+    if(t<0||t>=PT_DRUM_TRILHAS_MAX){return;}
+    d->frequencias[t]=f;d->ondas[t]=o;
 }
 static inline void pt_drum_reproduzir(PT_PadraoPercussao *d){d->passo_atual=0;d->tempo_acc=0;d->reproduzindo=1;}
 static inline void pt_drum_parar(PT_PadraoPercussao *d){d->reproduzindo=0;}
@@ -1133,24 +1147,30 @@ static void pt__mkhdr(PT__WH *h,uint32_t rate,uint16_t ch,uint32_t n){uint32_t d
 static int pt__wpcm(FILE *f,const int16_t *b,int n){uint8_t p[2];for(int i=0;i<n;i++){p[0]=(uint8_t)(b[i]&0xFF);p[1]=(uint8_t)((b[i]>>8)&0xFF);if(fwrite(p,1,2,f)!=2)return 0;}return 1;}
 
 static inline int pt_salvar_wav(const char *cam,const int16_t *buf,int n,int taxa){
-    if(!cam||!buf||n<=0||taxa<=0)return 0;FILE *f=fopen(cam,"wb");if(!f){perror("pt_salvar_wav");return 0;}
+    if(!cam||!buf||n<=0||taxa<=0)return 0;
+    FILE *f=fopen(cam,"wb");
+    if(!f){perror("pt_salvar_wav");return 0;}
     PT__WH h;pt__mkhdr(&h,(uint32_t)taxa,2,(uint32_t)n);if(fwrite(&h,sizeof(h),1,f)!=1){fclose(f);return 0;}
     int ok=pt__wpcm(f,buf,n*2);fclose(f);return ok;
 }
 static inline int pt_salvar_wav_mono(const char *cam,const int16_t *buf,int n,int taxa){
-    if(!cam||!buf||n<=0||taxa<=0)return 0;FILE *f=fopen(cam,"wb");if(!f){perror("pt_salvar_wav_mono");return 0;}
+    if(!cam||!buf||n<=0||taxa<=0)return 0;
+    FILE *f=fopen(cam,"wb");
+    if(!f){perror("pt_salvar_wav_mono");return 0;}
     PT__WH h;pt__mkhdr(&h,(uint32_t)taxa,1,(uint32_t)n);if(fwrite(&h,sizeof(h),1,f)!=1){fclose(f);return 0;}
     int ok=pt__wpcm(f,buf,n);fclose(f);return ok;
 }
 static inline int pt_renderizar_wav(PT_Contexto *ctx,const char *cam,float max_s){
-    if(!ctx||!cam||max_s<=0)return -1;int taxa=(int)ctx->taxa_amostra,mx=(int)(max_s*taxa);
+    if(!ctx||!cam||max_s<=0){return -1;}
+    int taxa=(int)ctx->taxa_amostra,mx=(int)(max_s*taxa);
     int16_t *buf=(int16_t*)malloc((size_t)mx*2*sizeof(int16_t));if(!buf)return -1;
     const int BLK=512;int tot=0;
     while(tot+BLK<=mx){int tem=0;for(int c=0;c<ctx->num_canais;c++)if(ctx->canais[c].ativo||ctx->canais[c].fase_env!=PT_ENV_INATIVO||ctx->canais[c].pcm.ativo){tem=1;break;}if(!tem)break;pt_gerar_amostras(ctx,buf+tot*2,BLK);tot+=BLK;}
     int ok=(tot>0)?pt_salvar_wav(cam,buf,tot,taxa):0;free(buf);return ok?tot:-1;
 }
 static inline int pt_renderizar_musica_wav(PT_Contexto *ctx,PT_Musica *m,const char *cam,float max_s){
-    if(!ctx||!m||!cam||max_s<=0)return -1;int taxa=(int)ctx->taxa_amostra,mx=(int)(max_s*taxa);
+    if(!ctx||!m||!cam||max_s<=0){return -1;}
+    int taxa=(int)ctx->taxa_amostra,mx=(int)(max_s*taxa);
     int16_t *buf=(int16_t*)malloc((size_t)mx*2*sizeof(int16_t));if(!buf)return -1;
     const int BLK=512;float dt=(float)BLK/taxa;int tot=0;
     pt_reproduzir_musica(ctx,m,0);
@@ -1191,13 +1211,16 @@ static inline void pt_ativar_eq(PT_Contexto *ctx,float ls_g,float ls_f,float mp_
 }
 static inline void pt_desativar_eq(PT_Contexto *ctx){ctx->eq.ativo=0;}
 static inline void pt_eq_graves(PT_Contexto *ctx,float g,float f){
-    if(!ctx->eq.ativo)return;pt__calc_low_shelf(&ctx->eq.ls_b0,&ctx->eq.ls_b1,&ctx->eq.ls_b2,&ctx->eq.ls_a1,&ctx->eq.ls_a2,g,f,ctx->taxa_amostra);memset(&ctx->eq.ls_x1,0,4*sizeof(float));
+    if(!ctx->eq.ativo){return;}
+    pt__calc_low_shelf(&ctx->eq.ls_b0,&ctx->eq.ls_b1,&ctx->eq.ls_b2,&ctx->eq.ls_a1,&ctx->eq.ls_a2,g,f,ctx->taxa_amostra);memset(&ctx->eq.ls_x1,0,4*sizeof(float));
 }
 static inline void pt_eq_medios(PT_Contexto *ctx,float g,float f,float q){
-    if(!ctx->eq.ativo)return;pt__calc_peak(&ctx->eq.mp_b0,&ctx->eq.mp_b1,&ctx->eq.mp_b2,&ctx->eq.mp_a1,&ctx->eq.mp_a2,g,f,q>0?q:0.707f,ctx->taxa_amostra);memset(&ctx->eq.mp_x1,0,4*sizeof(float));
+    if(!ctx->eq.ativo){return;}
+    pt__calc_peak(&ctx->eq.mp_b0,&ctx->eq.mp_b1,&ctx->eq.mp_b2,&ctx->eq.mp_a1,&ctx->eq.mp_a2,g,f,q>0?q:0.707f,ctx->taxa_amostra);memset(&ctx->eq.mp_x1,0,4*sizeof(float));
 }
 static inline void pt_eq_agudos(PT_Contexto *ctx,float g,float f){
-    if(!ctx->eq.ativo)return;pt__calc_high_shelf(&ctx->eq.hs_b0,&ctx->eq.hs_b1,&ctx->eq.hs_b2,&ctx->eq.hs_a1,&ctx->eq.hs_a2,g,f,ctx->taxa_amostra);memset(&ctx->eq.hs_x1,0,4*sizeof(float));
+    if(!ctx->eq.ativo){return;}
+    pt__calc_high_shelf(&ctx->eq.hs_b0,&ctx->eq.hs_b1,&ctx->eq.hs_b2,&ctx->eq.hs_a1,&ctx->eq.hs_a2,g,f,ctx->taxa_amostra);memset(&ctx->eq.hs_x1,0,4*sizeof(float));
 }
 
 /* ====================================================================
@@ -1205,7 +1228,8 @@ static inline void pt_eq_agudos(PT_Contexto *ctx,float g,float f){
  * ==================================================================== */
 
 static inline void pt_ativar_distorcao(PT_Contexto *ctx,int c,PT_TipoDistorcao tipo,float drive,float saida){
-    if(c<0||c>=ctx->num_canais)return;PT_Distorcao *d=&ctx->canais[c].distorcao;
+    if(c<0||c>=ctx->num_canais){return;}
+    PT_Distorcao *d=&ctx->canais[c].distorcao;
     d->ativo=1;d->tipo=tipo;d->drive=drive>0?drive:1;d->saida=pt__clampf(saida,0,1);d->estado=0;
 }
 static inline void pt_desativar_distorcao(PT_Contexto *ctx,int c){if(c>=0&&c<ctx->num_canais)ctx->canais[c].distorcao.ativo=0;}
@@ -1216,7 +1240,8 @@ static inline void pt_distorcao_drive(PT_Contexto *ctx,int c,float drive){if(c>=
  * ==================================================================== */
 
 static inline void pt_ativar_ring_mod(PT_Contexto *ctx,int c,float freq,float mix){
-    if(c<0||c>=ctx->num_canais)return;PT_RingMod *r=&ctx->canais[c].ring_mod;
+    if(c<0||c>=ctx->num_canais){return;}
+    PT_RingMod *r=&ctx->canais[c].ring_mod;
     r->ativo=1;r->freq=freq>0?freq:100;r->mix=pt__clampf(mix,0,1);r->fase=0;
 }
 static inline void pt_desativar_ring_mod(PT_Contexto *ctx,int c){if(c>=0&&c<ctx->num_canais)ctx->canais[c].ring_mod.ativo=0;}
@@ -1238,7 +1263,8 @@ static inline void pt_desativar_noise_gate(PT_Contexto *ctx){ctx->noise_gate.ati
  * ==================================================================== */
 
 static inline void pt_pcm_carregar(PT_Contexto *ctx,int c,const int16_t *dados,int n,int taxa,int loop){
-    if(c<0||c>=ctx->num_canais||!dados||n<=0)return;PT_PlayerPCM *p=&ctx->canais[c].pcm;
+    if(c<0||c>=ctx->num_canais||!dados||n<=0){return;}
+    PT_PlayerPCM *p=&ctx->canais[c].pcm;
     p->dados=dados;p->num_amostras=n;p->taxa=taxa>0?taxa:(int)ctx->taxa_amostra;p->em_loop=loop;p->pos=0;p->ativo=0;ctx->canais[c].forma_onda=PT_ONDA_PCM;
 }
 static inline void pt_pcm_tocar(PT_Contexto *ctx,int c,float freq,int vol){
@@ -1272,7 +1298,8 @@ static inline int16_t *pt_carregar_wav(const char *cam,int *n_out,int *taxa_out,
     int rd=(int)fread(raw,sizeof(int16_t),(size_t)total,f);fclose(f);if(rd<=0){free(raw);return NULL;}
     int16_t *mono=raw;
     if(chs==2){mono=(int16_t*)malloc((size_t)frames*sizeof(int16_t));if(!mono){free(raw);return NULL;}
-        for(int i=0;i<frames;i++)mono[i]=(int16_t)(((int)raw[i*2]+(int)raw[i*2+1])/2);free(raw);}
+        for(int i=0;i<frames;i++)mono[i]=(int16_t)(((int)raw[i*2]+(int)raw[i*2+1])/2);
+    free(raw);}
     *n_out=frames;*taxa_out=(int)rate;*ch_out=(int)chs;return mono;
 }
 
@@ -1297,7 +1324,8 @@ static inline void pt_desativar_phaser(PT_Contexto *ctx){ctx->phaser.ativo=0;}
  * ==================================================================== */
 
 static inline void pt_lfo_ativar(PT_Contexto *ctx,int idx,PT_FormaLFO forma,float taxa,float prof,float offset,int canal,PT_AlvoLFO alvo){
-    if(idx<0||idx>=PT_LFO_GLOBAL_MAX)return;PT_LFOGlobal *l=&ctx->lfos[idx];
+    if(idx<0||idx>=PT_LFO_GLOBAL_MAX){return;}
+    PT_LFOGlobal *l=&ctx->lfos[idx];
     l->forma=forma;l->taxa=taxa;l->profundidade=prof;l->offset=offset;l->canal_alvo=canal;l->alvo=alvo;l->fase=0;l->ativo=1;
 }
 static inline void pt_lfo_desativar(PT_Contexto *ctx,int idx){if(idx>=0&&idx<PT_LFO_GLOBAL_MAX)ctx->lfos[idx].ativo=0;}
@@ -1350,7 +1378,8 @@ static inline void pt_vozes_iniciar(PT_GerenciadorVozes *gv,int cb,int nv){
 static inline int pt_vozes_tocar(PT_Contexto *ctx,PT_GerenciadorVozes *gv,float freq,int vol,PT_FormaOnda fo){
     int voz=-1,mais_ant=gv->contador+1;
     for(int i=0;i<gv->num_vozes;i++){if(!gv->ativa[i]){voz=i;break;}if(gv->ordem[i]<mais_ant){mais_ant=gv->ordem[i];voz=i;}}
-    if(voz<0)return -1;int canal=gv->canal_base+voz;if(canal>=ctx->num_canais)return -1;
+    if(voz<0){return -1;}
+    int canal=gv->canal_base+voz;if(canal>=ctx->num_canais)return -1;
     gv->frequencias[voz]=freq;gv->ativa[voz]=1;gv->ordem[voz]=gv->contador++;pt_tocar_nota(ctx,canal,freq,vol,fo);return canal;
 }
 static inline void pt_vozes_parar(PT_Contexto *ctx,PT_GerenciadorVozes *gv,float freq){
@@ -1372,7 +1401,8 @@ static inline void pt_resetar_transpor_padrao(PT_Padrao *p){p->semitons_transpor
  * ==================================================================== */
 
 static inline void pt_ativar_pitch_shift(PT_Contexto *ctx,int c,float semitons){
-    if(c<0||c>=ctx->num_canais)return;PT_PitchShift *ps=&ctx->canais[c].pitch_shift;
+    if(c<0||c>=ctx->num_canais){return;}
+    PT_PitchShift *ps=&ctx->canais[c].pitch_shift;
     ps->semitons=semitons;ps->ativo=1;memset(ps->buf,0,sizeof(ps->buf));ps->cabeca=0;ps->fase_leitura=0;
 }
 static inline void pt_desativar_pitch_shift(PT_Contexto *ctx,int c){if(c>=0&&c<ctx->num_canais)ctx->canais[c].pitch_shift.ativo=0;}
@@ -1398,14 +1428,7 @@ typedef struct {
     float valor_atual; /* Multiplicador interpolado corrente                      */
 } PT_EnvPitch;
 
-static void pt__env_pitch_tick(PT_EnvPitch *ep, float taxa) {
-    if (!ep->ativo) return;
-    if (ep->fase < 1.0f) {
-        ep->fase += 1.0f / (ep->tempo > 0.0f ? ep->tempo * taxa : taxa);
-        if (ep->fase > 1.0f) ep->fase = 1.0f;
-    }
-    ep->valor_atual = ep->inicio + (ep->fim - ep->inicio) * ep->fase;
-}
+/* pt__env_pitch_tick: integrado em pt_definir_env_pitch via automacao */
 
 /* Adiciona ep->valor_atual ao campo freq_atual no gerar_canal */
 /* A integração é feita via pt_definir_env_pitch que instala um hook
