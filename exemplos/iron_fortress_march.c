@@ -7,7 +7,7 @@
  * Saida:     iron_fortress_march.wav
  */
 
-#include "partitura.h"
+#include "../partitura.h"
 
 int main(void) {
     PT_Contexto ctx = pt_criar_contexto(44100, 4);

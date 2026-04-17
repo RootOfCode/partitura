@@ -7,7 +7,7 @@
  * Saida:     phantom_palace_at_dusk.wav
  */
 
-#include "partitura.h"
+#include "../partitura.h"
 
 int main(void) {
     PT_Contexto ctx = pt_criar_contexto(44100, 4);

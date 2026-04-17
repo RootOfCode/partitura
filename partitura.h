@@ -1,29 +1,26 @@
 /*
  * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║                           PARTITURA.H  v3.0                              ║
+ * ║                           PARTITURA.H                                    ║
  * ║          Biblioteca de Sons e Músicas Estilo Retrô para Jogos            ║
  * ║                     (MS-DOS / PC-98 / Chip Music)                        ║
  * ╠══════════════════════════════════════════════════════════════════════════╣
- * ║  §1  Constantes              §17 FM         §27 Ring Mod   §37 Env Pitch  ║
- * ║  §2  Frequências             §18 Wavetable  §28 Noise Gate §38 Sínt.Adit. ║
- * ║  §3  Durações                §19 Eco/Chorus §29 Player PCM §39 Karplus-S. ║
- * ║  §4  Enumerações             §20 Automação  §30 Loader WAV §40 Metrônomo  ║
- * ║  §5  Estruturas              §21 Escalas    §31 Phaser     §41 Presets    ║
- * ║  §6  Funções internas        §22 Drum Mach. §32 LFO global §42 Wah-Wah    ║
- * ║  §7  Contexto                §23 Export WAV §33 Arpejador  §43 Widener    ║
- * ║  §8  Controle de canais      §24 Reverb     §34 Polyphony  §44 Recorder   ║
- * ║  §9  Envelope e efeitos      §25 EQ 3 band. §35 Transpor   §45 Tempo/BPM  ║
- * ║  §10 Geração PCM             §26 Distorção  §36 PitchShift §46 Sidechain  ║
- * ║  §11 Utilitários de notas                                                 ║
- * ║  §12 Efeitos sonoros prontos                                              ║
- * ║  §13 Padrões e sequenciador                                               ║
- * ║  §14 Consultas de estado     v3.0 — Domínio público / Zero-Clause BSD    ║
- * ║  §15 Macros de conveniência  USO: #include "partitura.h"  -lm            ║
- * ║  §16 Filtro SVF por canal                                                ║
+ * ║  §1  Constantes   §17 FM        §27 Ring Mod  §37 Env Pitch  §47 Alias curtos ║
+ * ║  §2  Frequências  §18 Wavetable §28 NoiseGate §38 Aditiva    §48 PT_MELODIA  ║
+ * ║  §3  Durações     §19 Eco/Chrs. §29 PCM Play  §39 Karplus-S  §49 Timbres    ║
+ * ║  §4  Enumerações  §20 Automação §30 WAV Load  §40 Metrônomo  §50 SongBuilder ║
+ * ║  §5  Estruturas   §21 Escalas   §31 Phaser    §41 Presets    §51 Humanização ║
+ * ║  §6  Funções int. §22 Drum Mach §32 LFO glob. §42 Wah-Wah   §52 Transf.Pad. ║
+ * ║  §7  Contexto     §23 Exp. WAV  §33 Arpejador §43 Widener    §53 Análise Pad ║
+ * ║  §8  Canais       §24 Reverb    §34 Polyphony  §44 Recorder   §54 PT_Stream  ║
+ * ║  §9  Envelope     §25 EQ 3band  §35 Transpor  §45 Tempo/BPM  §55 Progressões ║
+ * ║  §10 Geração PCM  §26 Distorção §36 PitchShft §46 Sidechain  §56 Fade Pad   ║
+ * ║  §11 Util. notas  §57 Ostinato  §58 MIDI macros §59 Mix/Layer §60 Setup Rápido║
+ * ║  §12 FX prontos   USO: #include "partitura.h"  -lm    v4.0                  ║
+ * ║  §13 Sequenciador §14 Estado  §15 Macros PT_NOTA  §16 Filtro SVF            ║
  * ╠══════════════════════════════════════════════════════════════════════════╣
  * ║  USO  : #include "partitura.h"                                           ║
  * ║  DEPS : stdint stdlib string math stdio  (-lm)                           ║
- * ║  LICENÇA: MIT                                                            ║
+ * ║  LICENÇA: Domínio público / Zero-Clause BSD                              ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
@@ -2000,8 +1997,779 @@ static inline void pt_sidechain_tick(PT_Contexto *ctx) {
     }
 }
 
+
 /* ====================================================================
- *  FIM — PARTITURA.H  v3.0
+ *  §47  ALIASES CURTOS — API COMPACTA PARA ESCREVER MÚSICAS
+ *
+ *  Prefixos de 1-2 letras para uso nas macros de padrão, tornando
+ *  a escrita de músicas muito menos verbosa:
+ *
+ *  Notas:    N(padrao,c,freq,dur,vol)  — onda quadrada
+ *            NF(padrao,c,freq,dur,vol,forma)  — onda específica
+ *            NE(padrao,c,freq,dur,vol,forma,efx,param) — com efeito
+ *            P(padrao,c,dur)           — pausa/silêncio
+ *
+ *  Formas:   SQ=Quadrada  TR=Triangular  SA=Dente-de-serra
+ *            PU=Pulso     SN=Seno       NB=Ruído Branco
+ *            NL=LFSR      FM=FM         WT=Wavetable
+ *
+ *  Durações: SB=Semibreve  MN=Mínima  SM=Semínima
+ *            CL=Colcheia   SC=Semicolcheia  FS=Fusa
+ *            (suffix P = pontuada, ex: MNP=Mínima pontuada)
+ *
+ *  Exemplo compacto vs verboso:
+ *    NF(a,0,PT_DO4,CL,12,FM)     vs    PT_NOTA_F(a,0,PT_DO4,PT_COLCHEIA,12,PT_ONDA_FM)
+ * ==================================================================== */
+
+/* ── Formas de onda ─────────────────────────────────────────────────── */
+#define SQ  PT_ONDA_QUADRADA
+#define TR  PT_ONDA_TRIANGULAR
+#define SA  PT_ONDA_DENTE_SERRA
+#define SI  PT_ONDA_DENTE_INV
+#define PU  PT_ONDA_PULSO
+#define SN  PT_ONDA_SENO
+#define NB  PT_RUIDO_BRANCO
+#define NL  PT_RUIDO_LFSR
+#define FM  PT_ONDA_FM
+#define WT  PT_ONDA_TABELA
+#define PC  PT_ONDA_PCM
+
+/* ── Durações ───────────────────────────────────────────────────────── */
+#define SB   PT_SEMIBREVE
+#define MN   PT_MINIMA
+#define MNP  PT_MINIMA_P
+#define SM   PT_SEMINIMA
+#define SMP  PT_SEMINIMA_P
+#define CL   PT_COLCHEIA
+#define CLP  PT_COLCHEIA_P
+#define SC   PT_SEMICOLCHEIA
+#define SCP  PT_SEMICOLCHEIA_P
+#define FS   PT_FUSA
+#define SFS  PT_SEMIFUSA
+#define TC   PT_TERCINA
+#define SX   PT_SEXTINA
+
+/* ── Macros de nota curtas ──────────────────────────────────────────── */
+
+/* N(padrao,canal,freq,dur,vol) — onda quadrada */
+#define N(p,c,f,d,v)          PT_NOTA(p,c,f,d,v)
+
+/* P(padrao,canal,dur) — pausa/silêncio */
+#define P(p,c,d)              PT_PAUSA(p,c,d)
+
+/* NF(padrao,canal,freq,dur,vol,forma) — forma específica */
+#define NF(p,c,f,d,v,fm)      PT_NOTA_F(p,c,f,d,v,fm)
+
+/* NE(padrao,canal,freq,dur,vol,forma,efx,param) — com efeito */
+#define NE(p,c,f,d,v,fm,e,pm) PT_NOTA_EFX(p,c,f,d,v,fm,e,pm)
+
+/* ── Macros de configuração de canal curtas ─────────────────────────── */
+
+/* ENV(ctx,c, atq,dec,sus,lib) */
+#define ENV(ctx,c,a,d,s,l)  pt_definir_envelope(ctx,c,a,d,s,l)
+
+/* VIB(ctx,c, prof,vel) */
+#define VIB(ctx,c,p,v)      pt_definir_vibrato(ctx,c,p,v)
+
+/* TRM(ctx,c, prof,vel) */
+#define TRM(ctx,c,p,v)      pt_definir_tremolo(ctx,c,p,v)
+
+/* PAN(ctx,c, valor) */
+#define PAN(ctx,c,v)        pt_definir_pan(ctx,c,v)
+
+/* VOL(ctx,c, 0-15) */
+#define VOL(ctx,c,v)        pt_definir_volume_canal(ctx,c,v)
+
+/* FLT(ctx,c, modo,hz,res) */
+#define FLT(ctx,c,m,h,r)    pt_ativar_filtro(ctx,c,m,h,r)
+
+/* PORTA(ctx,c, freq_alvo,tempo_s) */
+#define PORTA(ctx,c,f,t)    pt_definir_portamento(ctx,c,f,t)
+
+/* CRUSH(ctx,c, bits) */
+#define CRUSH(ctx,c,b)      pt_definir_bitcrush(ctx,c,b)
+
+/* ====================================================================
+ *  §48  API DE MELODIA POR ARRAY
+ *
+ *  Escreva uma melodia como um array {nota, duracao, volume, ...}
+ *  e adicione de uma vez ao padrão. Muito mais conciso do que
+ *  chamar PT_NOTA/PT_NOTA_F linha por linha.
+ *
+ *  Formato de entrada:  { nota, duracao, volume,  nota, duracao, volume, ... }
+ *  Use 0.0f como nota para pausas.
+ *  Use -1.0f como volume para manter o volume atual.
+ *  Termine o array com PT_FIM_MELODIA.
+ * ==================================================================== */
+
+#define PT_FIM_MELODIA  (-999.0f)
+
+static inline void pt_adicionar_melodia(PT_Padrao *p, int canal,
+                                        PT_FormaOnda forma,
+                                        const float *dados) {
+    int i = 0;
+    while (dados[i] != PT_FIM_MELODIA) {
+        float nota  = dados[i++];
+        float dur   = dados[i++];
+        int   vol   = (dados[i] == -1.0f) ? -1 : (int)dados[i];
+        i++;
+        if (nota > 0.0f)
+            pt_adicionar_nota_padrao(p, canal, nota, dur, vol, forma);
+        else
+            pt_adicionar_nota_padrao(p, canal, PT_SILENCIO, dur, -1, forma);
+    }
+}
+
+/* Versão com efeito por nota — dados: {nota, dur, vol, efx_code, efx_param, ...} */
+static inline void pt_adicionar_melodia_efx(PT_Padrao *p, int canal,
+                                            PT_FormaOnda forma,
+                                            const float *dados) {
+    int i = 0;
+    while (dados[i] != PT_FIM_MELODIA) {
+        float nota    = dados[i++];
+        float dur     = dados[i++];
+        int   vol     = (int)dados[i++];
+        int   efx     = (int)dados[i++];
+        float param   = dados[i++];
+        if (nota > 0.0f)
+            pt_adicionar_efeito_padrao(p, canal, nota, dur, vol, forma,
+                                       (PT_CodigoEfeito)efx, param);
+        else
+            pt_adicionar_nota_padrao(p, canal, PT_SILENCIO, dur, -1, forma);
+    }
+}
+
+/* Macro de conveniência para declarar e adicionar de uma vez:
+   PT_MELODIA(padrao, canal, forma, nota1,dur1,vol1, nota2,dur2,vol2, ...) */
+#define PT_MELODIA(padrao, canal, forma, ...) do { \
+    float _m[] = { __VA_ARGS__, PT_FIM_MELODIA }; \
+    pt_adicionar_melodia(&(padrao), (canal), (forma), _m); \
+} while(0)
+
+/* Versão quadrada por padrão */
+#define PT_MEL(padrao, canal, ...) PT_MELODIA(padrao, canal, PT_ONDA_QUADRADA, __VA_ARGS__)
+#define PT_MEL_FM(padrao, canal, ...) PT_MELODIA(padrao, canal, PT_ONDA_FM, __VA_ARGS__)
+#define PT_MEL_TR(padrao, canal, ...) PT_MELODIA(padrao, canal, PT_ONDA_TRIANGULAR, __VA_ARGS__)
+#define PT_MEL_SA(padrao, canal, ...) PT_MELODIA(padrao, canal, PT_ONDA_DENTE_SERRA, __VA_ARGS__)
+
+/* ====================================================================
+ *  §49  PRESETS DE CANAL COMPLETOS
+ *
+ *  Configura timbre + envelope + pan de um canal de uma vez só.
+ *  Ideal para iniciar canais sem blocos repetitivos de setup.
+ * ==================================================================== */
+
+/* Timbre composto: onda + envelope + pan em uma chamada */
+typedef struct {
+    PT_FormaOnda forma;
+    float ataque, decaimento, sustentacao, liberacao;
+    float pan;
+    float volume;          /* 0.0-1.0, ou <0 para manter */
+    /* FM (se forma==PT_ONDA_FM) */
+    float fm_razao, fm_indice;
+    float fm_atq, fm_dec, fm_sus, fm_lib;
+    /* Vibrato */
+    float vib_prof, vib_vel;
+    /* Largura de pulso (para PT_ONDA_PULSO) */
+    float largura_pulso;
+} PT_TibroCanal;
+
+static inline void pt_aplicar_timbre(PT_Contexto *ctx, int canal,
+                                     const PT_TibroCanal *t) {
+    if (canal < 0 || canal >= ctx->num_canais || !t) return;
+    pt_definir_envelope(ctx, canal, t->ataque, t->decaimento,
+                        t->sustentacao, t->liberacao);
+    pt_definir_pan(ctx, canal, t->pan);
+    if (t->volume >= 0.0f)
+        ctx->canais[canal].volume = pt__clampf(t->volume, 0.0f, 1.0f);
+    if (t->vib_prof > 0.0f)
+        pt_definir_vibrato(ctx, canal, t->vib_prof, t->vib_vel);
+    if (t->largura_pulso > 0.0f)
+        pt_definir_largura_pulso(ctx, canal, t->largura_pulso);
+    if (t->forma == PT_ONDA_FM && t->fm_razao > 0.0f) {
+        pt_ativar_fm(ctx, canal, t->fm_razao, t->fm_indice);
+        if (t->fm_atq >= 0.0f)
+            pt_fm_envelope_modulador(ctx, canal,
+                t->fm_atq, t->fm_dec, t->fm_sus, t->fm_lib);
+    }
+}
+
+/* Timbres prontos como constantes — use com pt_aplicar_timbre() */
+
+/* PSG clássico — quadrada limpa */
+static const PT_TibroCanal PT_TIMBRE_PSG = {
+    PT_ONDA_QUADRADA, 0.002f, 0.0f, 0.88f, 0.05f,
+    0.0f, -1.0f, 0,0, 0,0,0,0, 0,0, 0.5f
+};
+/* Triangular suave — flauta/baixo */
+static const PT_TibroCanal PT_TIMBRE_TRIANGULAR = {
+    PT_ONDA_TRIANGULAR, 0.01f, 0.0f, 0.80f, 0.12f,
+    0.0f, -1.0f, 0,0, 0,0,0,0, 0,0, 0.5f
+};
+/* Dente de serra — lead brilhante */
+static const PT_TibroCanal PT_TIMBRE_LEAD = {
+    PT_ONDA_DENTE_SERRA, 0.005f, 0.05f, 0.70f, 0.08f,
+    0.0f, -1.0f, 0,0, 0,0,0,0, 0,0, 0.5f
+};
+/* Pulso 25% — koto/timbre asiático */
+static const PT_TibroCanal PT_TIMBRE_KOTO = {
+    PT_ONDA_PULSO, 0.001f, 0.20f, 0.0f, 0.05f,
+    0.0f, -1.0f, 0,0, 0,0,0,0, 0,0, 0.25f
+};
+/* Baixo percussivo — dente de serra + decaimento */
+static const PT_TibroCanal PT_TIMBRE_BAIXO = {
+    PT_ONDA_DENTE_SERRA, 0.001f, 0.25f, 0.05f, 0.06f,
+    0.0f, -1.0f, 0,0, 0,0,0,0, 0,0, 0.5f
+};
+/* FM — órgão */
+static const PT_TibroCanal PT_TIMBRE_ORGAO_FM = {
+    PT_ONDA_FM, 0.01f, 0.0f, 0.80f, 0.06f,
+    0.0f, -1.0f, 1.0f, 2.0f, 0,0,1,0.05f, 0,0, 0.5f
+};
+/* FM — sino */
+static const PT_TibroCanal PT_TIMBRE_SINO_FM = {
+    PT_ONDA_FM, 0.001f, 2.5f, 0.0f, 0.5f,
+    0.0f, -1.0f, 3.5f, 5.0f, 0,2.0f,0,0.5f, 0,0, 0.5f
+};
+/* FM — brass */
+static const PT_TibroCanal PT_TIMBRE_BRASS_FM = {
+    PT_ONDA_FM, 0.005f, 0.10f, 0.55f, 0.12f,
+    0.0f, -1.0f, 2.0f, 3.5f, 0,0.1f,0.4f,0.15f, 0,0, 0.5f
+};
+/* Flauta — triangular com vibrato */
+static const PT_TibroCanal PT_TIMBRE_FLAUTA = {
+    PT_ONDA_TRIANGULAR, 0.015f, 0.0f, 0.85f, 0.15f,
+    0.0f, -1.0f, 0,0, 0,0,0,0, 0.30f, 5.5f, 0.5f
+};
+/* Cordas — wavetable (usuário deve chamar pt_definir_tabela_onda separadamente) */
+static const PT_TibroCanal PT_TIMBRE_CORDAS = {
+    PT_ONDA_TABELA, 0.08f, 0.0f, 0.80f, 0.25f,
+    0.0f, -1.0f, 0,0, 0,0,0,0, 0.18f, 4.5f, 0.5f
+};
+
+/* ====================================================================
+ *  §50  CONSTRUTOR DE SEQUÊNCIA RÁPIDA (SONG BUILDER)
+ *
+ *  API fluente para construir músicas sem variáveis locais separadas.
+ *  Permite encadear pt_sb_*() para definir toda a estrutura num bloco.
+ * ==================================================================== */
+
+/* Contexto do song builder — não aloca memória, usa ponteiros fornecidos */
+typedef struct {
+    PT_Musica  *musica;
+    PT_Padrao  *padrao_atual;
+    PT_Contexto *ctx;
+    int         canal_atual;
+    PT_FormaOnda forma_atual;
+} PT_SongBuilder;
+
+static inline PT_SongBuilder pt_sb_iniciar(PT_Contexto *ctx, PT_Musica *m) {
+    PT_SongBuilder sb;
+    sb.ctx         = ctx;
+    sb.musica      = m;
+    sb.padrao_atual= NULL;
+    sb.canal_atual = 0;
+    sb.forma_atual = PT_ONDA_QUADRADA;
+    pt_iniciar_musica(m);
+    return sb;
+}
+
+/* Define o padrão ativo do builder */
+static inline PT_SongBuilder *pt_sb_padrao(PT_SongBuilder *sb,
+                                            PT_Padrao *p, float bpm) {
+    pt_iniciar_padrao(p, bpm);
+    sb->padrao_atual = p;
+    return sb;
+}
+
+/* Adiciona o padrão atual à música N vezes e avança */
+static inline PT_SongBuilder *pt_sb_adicionar(PT_SongBuilder *sb, int rep) {
+    if (sb->padrao_atual)
+        pt_adicionar_padrao_musica(sb->musica, sb->padrao_atual, rep);
+    return sb;
+}
+
+/* Seleciona canal e forma de onda para as próximas notas */
+static inline PT_SongBuilder *pt_sb_canal(PT_SongBuilder *sb,
+                                           int canal, PT_FormaOnda forma) {
+    sb->canal_atual = canal;
+    sb->forma_atual = forma;
+    return sb;
+}
+
+/* Adiciona nota ao padrão atual no canal atual */
+static inline PT_SongBuilder *pt_sb_nota(PT_SongBuilder *sb,
+                                          float freq, float dur, int vol) {
+    if (!sb->padrao_atual) return sb;
+    pt_adicionar_nota_padrao(sb->padrao_atual, sb->canal_atual,
+                             freq, dur, vol, sb->forma_atual);
+    return sb;
+}
+
+/* Adiciona pausa ao padrão atual no canal atual */
+static inline PT_SongBuilder *pt_sb_pausa(PT_SongBuilder *sb, float dur) {
+    if (!sb->padrao_atual) return sb;
+    pt_adicionar_nota_padrao(sb->padrao_atual, sb->canal_atual,
+                             PT_SILENCIO, dur, -1, sb->forma_atual);
+    return sb;
+}
+
+/* Configura envelope do canal atual */
+static inline PT_SongBuilder *pt_sb_env(PT_SongBuilder *sb,
+                                         float a,float d,float s,float r) {
+    pt_definir_envelope(sb->ctx, sb->canal_atual, a,d,s,r);
+    return sb;
+}
+
+/* Aplica timbre completo ao canal atual */
+static inline PT_SongBuilder *pt_sb_timbre(PT_SongBuilder *sb,
+                                            const PT_TibroCanal *t) {
+    pt_aplicar_timbre(sb->ctx, sb->canal_atual, t);
+    sb->forma_atual = t->forma;
+    return sb;
+}
+
+/* Renderiza a música montada para .wav */
+static inline int pt_sb_renderizar(PT_SongBuilder *sb,
+                                    const char *arquivo, float max_s) {
+    return pt_renderizar_musica_wav(sb->ctx, sb->musica, arquivo, max_s);
+}
+
+/* ====================================================================
+ *  §51  HUMANIZAÇÃO (TIMING E VELOCITY JITTER)
+ *
+ *  Aplica pequenas variações aleatórias de timing e volume aos
+ *  eventos de um padrão, dando sensação de execução humana.
+ *  Essencial para quebrar a rigidez mecânica do sequenciador.
+ * ==================================================================== */
+
+static inline void pt_humanizar_padrao(PT_Padrao *p,
+                                        float jitter_timing,
+                                        float jitter_volume,
+                                        uint32_t seed) {
+    uint32_t rng = seed ? seed : 0xBEEF1234u;
+    for (int c = 0; c < PT_CANAIS_MAX; c++) {
+        for (int i = 0; i < p->num_eventos[c]; i++) {
+            PT_Evento *ev = &p->eventos[c][i];
+            if (ev->frequencia <= 0.0f) continue;
+
+            /* Timing jitter: ±jitter_timing em fração de batida */
+            rng = rng * 1664525u + 1013904223u;
+            float dt = ((float)(int)(rng >> 16) / 32767.5f - 1.0f) * jitter_timing;
+            ev->duracao = pt__clampf(ev->duracao + dt, 0.01f, ev->duracao * 2.0f);
+
+            /* Volume jitter: ±jitter_volume em 0-15 */
+            rng = rng * 1664525u + 1013904223u;
+            float dv = ((float)(int)(rng >> 16) / 32767.5f - 1.0f) * jitter_volume * 15.0f;
+            int v = ev->volume >= 0 ? ev->volume : PT_VOLUME_MAX;
+            ev->volume = (int8_t)pt__clampf((float)v + dv, 0.0f, 15.0f);
+        }
+    }
+}
+
+/* Versão mais simples: jitter de volume apenas (não altera timing) */
+static inline void pt_humanizar_volume(PT_Padrao *p, float intensidade,
+                                        uint32_t seed) {
+    pt_humanizar_padrao(p, 0.0f, intensidade, seed);
+}
+
+/* ====================================================================
+ *  §52  COPIAR E TRANSFORMAR PADRÕES
+ *
+ *  Utilitários para duplicar, espelhar, e transformar padrões
+ *  sem reescrever as notas manualmente.
+ * ==================================================================== */
+
+/* Copia um padrão inteiro (mantém BPM, notas e efeitos) */
+static inline void pt_copiar_padrao(PT_Padrao *dst, const PT_Padrao *src) {
+    if (!dst || !src) return;
+    *dst = *src;
+}
+
+/* Transpõe todas as notas de um padrão em N semitons (in-place) */
+static inline void pt_transpor_padrao_hz(PT_Padrao *p, float semitons) {
+    float mult = powf(2.0f, semitons / 12.0f);
+    for (int c = 0; c < PT_CANAIS_MAX; c++) {
+        for (int i = 0; i < p->num_eventos[c]; i++) {
+            if (p->eventos[c][i].frequencia > 0.0f)
+                p->eventos[c][i].frequencia *= mult;
+        }
+    }
+}
+
+/* Inverte a ordem dos eventos de um canal dentro de um padrão */
+static inline void pt_inverter_melodia(PT_Padrao *p, int canal) {
+    if (canal < 0 || canal >= PT_CANAIS_MAX) return;
+    int n = p->num_eventos[canal];
+    for (int i = 0; i < n / 2; i++) {
+        PT_Evento tmp = p->eventos[canal][i];
+        p->eventos[canal][i] = p->eventos[canal][n - 1 - i];
+        p->eventos[canal][n - 1 - i] = tmp;
+    }
+}
+
+/* Retrograde: cria uma cópia com canal espelhado no tempo */
+static inline void pt_retrograde_canal(PT_Padrao *dst, const PT_Padrao *src,
+                                        int canal_src, int canal_dst) {
+    if (!dst || !src) return;
+    int n = src->num_eventos[canal_src];
+    dst->num_eventos[canal_dst] = 0;
+    for (int i = n - 1; i >= 0; i--) {
+        const PT_Evento *ev = &src->eventos[canal_src][i];
+        pt_adicionar_efeito_padrao(dst, canal_dst,
+            ev->frequencia, ev->duracao, ev->volume, ev->forma_onda,
+            (PT_CodigoEfeito)ev->efeito, ev->param);
+    }
+}
+
+/* Escala todas as durações por um fator (ex: 0.5 = metade da velocidade) */
+static inline void pt_escalar_duracoes(PT_Padrao *p, float fator) {
+    if (fator <= 0.0f) return;
+    for (int c = 0; c < PT_CANAIS_MAX; c++) {
+        for (int i = 0; i < p->num_eventos[c]; i++) {
+            p->eventos[c][i].duracao *= fator;
+            if (p->eventos[c][i].duracao < 0.001f)
+                p->eventos[c][i].duracao = 0.001f;
+        }
+    }
+}
+
+/* Clona um canal de um padrão para outro canal (mesmo ou diferente padrão) */
+static inline void pt_clonar_canal_padrao(PT_Padrao *dst, int cd,
+                                           const PT_Padrao *src, int cs) {
+    if (!dst || !src || cd<0 || cd>=PT_CANAIS_MAX || cs<0 || cs>=PT_CANAIS_MAX)
+        return;
+    dst->num_eventos[cd] = src->num_eventos[cs];
+    for (int i = 0; i < src->num_eventos[cs]; i++)
+        dst->eventos[cd][i] = src->eventos[cs][i];
+}
+
+/* ====================================================================
+ *  §53  ANÁLISE DE PADRÃO
+ *
+ *  Funções para inspecionar padrões: duração total, número de notas,
+ *  nota mais alta/baixa, volume médio, etc.
+ * ==================================================================== */
+
+/* Retorna a duração total de um canal em batidas */
+static inline float pt_duracao_canal(const PT_Padrao *p, int canal) {
+    if (canal < 0 || canal >= PT_CANAIS_MAX) return 0.0f;
+    float total = 0.0f;
+    for (int i = 0; i < p->num_eventos[canal]; i++)
+        total += p->eventos[canal][i].duracao;
+    return total;
+}
+
+/* Retorna a duração total em segundos */
+static inline float pt_duracao_canal_s(const PT_Padrao *p, int canal) {
+    return (p->bpm > 0.0f) ? pt_duracao_canal(p, canal) * (60.0f / p->bpm) : 0.0f;
+}
+
+/* Conta o número de notas reais (exclui pausas) num canal */
+static inline int pt_contar_notas(const PT_Padrao *p, int canal) {
+    if (canal < 0 || canal >= PT_CANAIS_MAX) return 0;
+    int n = 0;
+    for (int i = 0; i < p->num_eventos[canal]; i++)
+        if (p->eventos[canal][i].frequencia > 0.0f) n++;
+    return n;
+}
+
+/* Retorna a frequência mais alta num canal (0 = nenhuma) */
+static inline float pt_nota_mais_alta(const PT_Padrao *p, int canal) {
+    if (canal < 0 || canal >= PT_CANAIS_MAX) return 0.0f;
+    float mx = 0.0f;
+    for (int i = 0; i < p->num_eventos[canal]; i++)
+        if (p->eventos[canal][i].frequencia > mx)
+            mx = p->eventos[canal][i].frequencia;
+    return mx;
+}
+
+/* Retorna a frequência mais baixa num canal (0 = nenhuma) */
+static inline float pt_nota_mais_baixa(const PT_Padrao *p, int canal) {
+    if (canal < 0 || canal >= PT_CANAIS_MAX) return 0.0f;
+    float mn = 1e9f;
+    int tem = 0;
+    for (int i = 0; i < p->num_eventos[canal]; i++) {
+        float f = p->eventos[canal][i].frequencia;
+        if (f > 0.0f && f < mn) { mn = f; tem = 1; }
+    }
+    return tem ? mn : 0.0f;
+}
+
+/* ====================================================================
+ *  §54  CANAL SEQUENCIAL RÁPIDO (note streaming)
+ *
+ *  Permite adicionar notas com sintaxe mínima usando estado interno.
+ *  Ideal para escrever linhas de baixo, percussão e ostinatos rápidos.
+ *
+ *  Uso:
+ *    PT_Stream s = pt_stream(&padrao, canal, forma, vol_padrao);
+ *    pt_s(&s, PT_DO4, CL);      // nota Dó4 por uma colcheia
+ *    pt_s(&s, PT_MI4, SC);      // nota Mi4 por uma semicolcheia
+ *    pt_s_p(&s, CL);            // pausa de uma colcheia
+ *    pt_s_v(&s, PT_SOL4, CL, 8); // nota com volume específico
+ * ==================================================================== */
+
+typedef struct {
+    PT_Padrao   *padrao;
+    int          canal;
+    PT_FormaOnda forma;
+    int          volume;
+} PT_Stream;
+
+static inline PT_Stream pt_stream(PT_Padrao *p, int canal,
+                                   PT_FormaOnda forma, int volume) {
+    PT_Stream s; s.padrao=p; s.canal=canal; s.forma=forma; s.volume=volume;
+    return s;
+}
+
+/* Nota com volume padrão do stream */
+static inline void pt_s(PT_Stream *s, float freq, float dur) {
+    pt_adicionar_nota_padrao(s->padrao, s->canal, freq, dur, s->volume, s->forma);
+}
+
+/* Nota com volume específico */
+static inline void pt_s_v(PT_Stream *s, float freq, float dur, int vol) {
+    pt_adicionar_nota_padrao(s->padrao, s->canal, freq, dur, vol, s->forma);
+}
+
+/* Pausa */
+static inline void pt_s_p(PT_Stream *s, float dur) {
+    pt_adicionar_nota_padrao(s->padrao, s->canal, PT_SILENCIO, dur, -1, s->forma);
+}
+
+/* Nota com efeito */
+static inline void pt_s_e(PT_Stream *s, float freq, float dur,
+                           PT_CodigoEfeito efx, float param) {
+    pt_adicionar_efeito_padrao(s->padrao, s->canal, freq, dur,
+                               s->volume, s->forma, efx, param);
+}
+
+/* Repete a última nota N vezes */
+static inline void pt_s_rep(PT_Stream *s, float dur, int n) {
+    int idx = s->padrao->num_eventos[s->canal] - 1;
+    if (idx < 0) return;
+    float f = s->padrao->eventos[s->canal][idx].frequencia;
+    for (int i = 0; i < n; i++)
+        pt_adicionar_nota_padrao(s->padrao, s->canal, f, dur, s->volume, s->forma);
+}
+
+/* ====================================================================
+ *  §55  PROGRESSÕES DE ACORDE (CHORD CHART)
+ *
+ *  Define uma progressão harmônica e gera o acompanhamento automaticamente
+ *  em blocos de duração uniforme. Útil para bases de comping.
+ * ==================================================================== */
+
+typedef struct {
+    float        raiz;
+    PT_TipoAcorde tipo;
+    float        duracao;   /* Duração total em batidas */
+    int          arpejado;  /* 0=bloco, 1=arpejo ascendente, 2=arpejo descendente */
+} PT_Acorde;
+
+/* Adiciona um acorde ao padrão num canal, distribui pelas vozes internas */
+static inline void pt_adicionar_progressao(PT_Padrao *p, int canal_base,
+                                            const PT_Acorde *prog, int num_acordes,
+                                            PT_FormaOnda forma, int volume) {
+    /* Limpa os canais usados */
+    for (int vc = 0; vc < 4 && (canal_base + vc) < PT_CANAIS_MAX; vc++)
+        p->num_eventos[canal_base + vc] = 0;
+
+    for (int ai = 0; ai < num_acordes; ai++) {
+        const PT_Acorde *ac = &prog[ai];
+        float notas[5]; int nn = pt_gerar_acorde(ac->raiz, ac->tipo, notas);
+
+        if (ac->arpejado == 0) {
+            /* Bloco: cada voz soa junta */
+            for (int vi = 0; vi < nn && (canal_base+vi) < PT_CANAIS_MAX; vi++)
+                pt_adicionar_nota_padrao(p, canal_base+vi, notas[vi],
+                                         ac->duracao, volume, forma);
+        } else {
+            /* Arpejo: notas em sequência num único canal */
+            float dur_nota = ac->duracao / (float)nn;
+            int inicio = (ac->arpejado == 2) ? nn-1 : 0;
+            int fim    = (ac->arpejado == 2) ? -1   : nn;
+            int passo  = (ac->arpejado == 2) ? -1   : 1;
+            for (int vi = inicio; vi != fim; vi += passo)
+                pt_adicionar_nota_padrao(p, canal_base, notas[vi],
+                                         dur_nota, volume, forma);
+        }
+    }
+}
+
+/* ====================================================================
+ *  §56  FADE IN / FADE OUT DE PADRÃO
+ *
+ *  Aplica um crescendo ou decrescendo de volume aos eventos de um
+ *  canal dentro de um padrão, reescalando os volumes gradualmente.
+ * ==================================================================== */
+
+static inline void pt_fade_in_padrao(PT_Padrao *p, int canal,
+                                      int vol_inicio, int vol_fim) {
+    if (canal < 0 || canal >= PT_CANAIS_MAX) return;
+    int n = p->num_eventos[canal];
+    if (n == 0) return;
+    for (int i = 0; i < n; i++) {
+        float t   = (float)i / (float)(n - 1 > 0 ? n - 1 : 1);
+        float vol = vol_inicio + (vol_fim - vol_inicio) * t;
+        if (p->eventos[canal][i].frequencia > 0.0f)
+            p->eventos[canal][i].volume = (int8_t)pt__clampf(vol, 0, 15);
+    }
+}
+
+static inline void pt_fade_out_padrao(PT_Padrao *p, int canal, int vol_inicio) {
+    pt_fade_in_padrao(p, canal, vol_inicio, 0);
+}
+
+/* ====================================================================
+ *  §57  GERADOR DE OSTINATO (FIGURAS RÍTMICAS REPETIDAS)
+ *
+ *  Preenche um canal de um padrão com uma figura rítmica repetida:
+ *  um array {freq, dur, vol, freq, dur, vol, ...} que se repete
+ *  até preencher o número de batidas total pedido.
+ * ==================================================================== */
+
+static inline void pt_adicionar_ostinato(PT_Padrao *p, int canal,
+                                          PT_FormaOnda forma,
+                                          const float *figura,
+                                          int num_notas_figura,
+                                          float batidas_total) {
+    if (canal < 0 || canal >= PT_CANAIS_MAX) return;
+    float acumulado = 0.0f;
+    while (acumulado < batidas_total) {
+        for (int i = 0; i < num_notas_figura; i++) {
+            float freq = figura[i * 3 + 0];
+            float dur  = figura[i * 3 + 1];
+            int   vol  = (int)figura[i * 3 + 2];
+            if (acumulado + dur > batidas_total + 0.001f)
+                dur = batidas_total - acumulado;
+            if (dur <= 0.0f) break;
+            if (freq > 0.0f)
+                pt_adicionar_nota_padrao(p, canal, freq, dur, vol, forma);
+            else
+                pt_adicionar_nota_padrao(p, canal, PT_SILENCIO, dur, -1, forma);
+            acumulado += dur;
+            if (acumulado >= batidas_total) return;
+        }
+    }
+}
+
+/* Macro de conveniência: define a figura inline */
+#define PT_OSTINATO(p, c, forma, bat, ...) do { \
+    float _fig[] = { __VA_ARGS__ }; \
+    int _n = (int)(sizeof(_fig)/sizeof(float)) / 3; \
+    pt_adicionar_ostinato(&(p),(c),(forma),_fig,_n,(bat)); \
+} while(0)
+
+/* ====================================================================
+ *  §58  MACROS DE NOTAS MIDI (0-127) — NOTAÇÃO COMPACTA MIDI
+ *
+ *  Constantes para os 128 números de nota MIDI com nomes legíveis.
+ *  Use com pt_midi_para_hz() ou com PT_HZ(midi) inline.
+ * ==================================================================== */
+
+/* Converte número MIDI para Hz inline em tempo de compilação (aproximado) */
+/* Para uso em array: { PT_HZ(60), CL, 12, PT_HZ(64), CL, 12, ... } */
+/* Nota: usa powf então não é constante de compilação — use pt_midi_para_hz() */
+#define PT_HZ(midi)   pt_midi_para_hz(midi)
+
+/* Números MIDI das oitavas centrais (4 = oitava 4) */
+#define MIDI_DO4   60
+#define MIDI_DOS4  61
+#define MIDI_RE4   62
+#define MIDI_RES4  63
+#define MIDI_MI4   64
+#define MIDI_FA4   65
+#define MIDI_FAS4  66
+#define MIDI_SOL4  67
+#define MIDI_SOLS4 68
+#define MIDI_LA4   69
+#define MIDI_LAS4  70
+#define MIDI_SI4   71
+#define MIDI_DO5   72
+#define MIDI_MI5   76
+#define MIDI_SOL5  79
+#define MIDI_LA5   81
+#define MIDI_DO3   48
+#define MIDI_LA3   57
+#define MIDI_MI3   52
+
+/* ====================================================================
+ *  §59  UTILITÁRIOS DE MISTURA / LAYER
+ *
+ *  Funções para combinar dois padrões num único, layering de notas,
+ *  e sobreposição de timbres num mesmo canal.
+ * ==================================================================== */
+
+/* Concatena o canal de um padrão ao final de outro canal */
+static inline void pt_concatenar_canal(PT_Padrao *dst, int cd,
+                                        const PT_Padrao *src, int cs) {
+    if (!dst || !src || cd<0 || cd>=PT_CANAIS_MAX || cs<0 || cs>=PT_CANAIS_MAX)
+        return;
+    int nd = dst->num_eventos[cd];
+    int ns = src->num_eventos[cs];
+    for (int i = 0; i < ns && (nd + i) < PT_EVENTOS_MAX; i++)
+        dst->eventos[cd][nd + i] = src->eventos[cs][i];
+    dst->num_eventos[cd] = nd + (ns < PT_EVENTOS_MAX - nd ? ns : PT_EVENTOS_MAX - nd);
+}
+
+/* Aplica um volume relativo a todos os eventos de um canal (0.0-2.0, 1.0=neutro) */
+static inline void pt_volume_relativo_canal(PT_Padrao *p, int canal, float fator) {
+    if (canal < 0 || canal >= PT_CANAIS_MAX) return;
+    for (int i = 0; i < p->num_eventos[canal]; i++) {
+        PT_Evento *ev = &p->eventos[canal][i];
+        if (ev->frequencia > 0.0f && ev->volume >= 0) {
+            float v = (float)ev->volume * fator;
+            ev->volume = (int8_t)pt__clampf(v, 0, 15);
+        }
+    }
+}
+
+/* Substitui a forma de onda de todos os eventos de um canal */
+static inline void pt_substituir_forma(PT_Padrao *p, int canal, PT_FormaOnda nova) {
+    if (canal < 0 || canal >= PT_CANAIS_MAX) return;
+    for (int i = 0; i < p->num_eventos[canal]; i++)
+        p->eventos[canal][i].forma_onda = nova;
+}
+
+/* ====================================================================
+ *  §60  PRESETS DE SETUP COMPLETO DE CANAIS
+ *
+ *  Configura N canais de uma vez com roles padrão (lead, harmony,
+ *  bass, drums) usando um único macro.
+ * ==================================================================== */
+
+/* Setup para música estilo Touhou / PSG (4 canais) */
+static inline void pt_setup_touhou(PT_Contexto *ctx) {
+    /* 0: lead quadrada, 1: harmonia triangular, 2: baixo SA, 3: percussão */
+    pt_aplicar_timbre(ctx, 0, &PT_TIMBRE_PSG);        ctx->canais[0].pan = -0.2f;
+    pt_aplicar_timbre(ctx, 1, &PT_TIMBRE_TRIANGULAR);  ctx->canais[1].pan =  0.2f;
+    pt_aplicar_timbre(ctx, 2, &PT_TIMBRE_BAIXO);       ctx->canais[2].pan =  0.0f;
+    pt_definir_envelope(ctx, 3, 0.001f, 0.06f, 0.0f, 0.01f);
+}
+
+/* Setup para RPG estilo PC-98 / FM (4 canais) */
+static inline void pt_setup_pc98_rpg(PT_Contexto *ctx) {
+    /* 0: brass FM, 1: strings FM, 2: bass FM, 3: percussion */
+    pt_aplicar_timbre(ctx, 0, &PT_TIMBRE_BRASS_FM);    ctx->canais[0].pan = -0.2f;
+    pt_aplicar_timbre(ctx, 1, &PT_TIMBRE_ORGAO_FM);    ctx->canais[1].pan =  0.2f;
+    pt_aplicar_timbre(ctx, 2, &PT_TIMBRE_BAIXO);       ctx->canais[2].pan =  0.0f;
+    pt_ativar_fm(ctx, 2, 2.0f, 6.0f);
+    pt_fm_envelope_modulador(ctx, 2, 0.0f, 0.06f, 0.0f, 0.0f);
+    pt_definir_envelope(ctx, 3, 0.001f, 0.08f, 0.0f, 0.02f);
+}
+
+/* Setup para jogo de ação MS-DOS (4 canais) */
+static inline void pt_setup_msdos_acao(PT_Contexto *ctx) {
+    pt_aplicar_timbre(ctx, 0, &PT_TIMBRE_PSG);         ctx->canais[0].pan = -0.15f;
+    pt_aplicar_timbre(ctx, 1, &PT_TIMBRE_KOTO);        ctx->canais[1].pan =  0.15f;
+    pt_aplicar_timbre(ctx, 2, &PT_TIMBRE_BAIXO);       ctx->canais[2].pan =  0.0f;
+    pt_definir_envelope(ctx, 3, 0.001f, 0.055f, 0.0f, 0.01f);
+}
+
+/* ====================================================================
+ *  FIM — PARTITURA.H  v4.0
  * ==================================================================== */
 
 #ifdef __cplusplus
@@ -2009,3 +2777,4 @@ static inline void pt_sidechain_tick(PT_Contexto *ctx) {
 #endif
 
 #endif /* PARTITURA_H */
+

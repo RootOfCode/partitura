@@ -1,183 +1,121 @@
 /*
  * dungeon_crawler.c
- * "Dungeon Crawler" — estilo MS-DOS / AdLib OPL2 (SoundBlaster)
+ * "Dungeon Crawler" — estilo MS-DOS / AdLib OPL2
+ *
+ * Usa a nova API compacta:
+ *   pt_setup_pc98_rpg() — configura timbres FM de uma vez
+ *   PT_MEL_FM()         — melodia FM via array
+ *   PT_Stream           — baixo e harmonia sem verbosidade
+ *   pt_fade_in_padrao() — fade de volume dentro do padrão
  *
  * Compilar:  gcc dungeon_crawler.c -o dungeon_crawler -lm
- * Executar:  ./dungeon_crawler
  * Saida:     dungeon_crawler.wav
  */
 
-#include "partitura.h"
+#include "../partitura.h"
 
 int main(void) {
     PT_Contexto ctx = pt_criar_contexto(44100, 4);
     ctx.volume_master = 0.52f;
+    pt_setup_pc98_rpg(&ctx);
 
-    /* Canal 0: brass FM */
-    pt_ativar_fm(&ctx, 0, 2.0f, 3.5f);
-    pt_fm_envelope_modulador(&ctx, 0, 0.0f, 0.1f, 0.4f, 0.15f);
-    pt_definir_envelope(&ctx, 0, 0.005f, 0.12f, 0.50f, 0.12f);
-    pt_definir_pan(&ctx, 0, -0.2f);
-
-    /* Canal 1: strings FM */
-    pt_ativar_fm(&ctx, 1, 1.0f, 0.8f);
-    pt_fm_envelope_modulador(&ctx, 1, 0.08f, 0.0f, 0.85f, 0.3f);
-    pt_definir_envelope(&ctx, 1, 0.06f, 0.0f, 0.70f, 0.2f);
-    pt_definir_pan(&ctx, 1, 0.2f);
-
-    /* Canal 2: bass FM */
-    pt_ativar_fm(&ctx, 2, 2.0f, 6.0f);
-    pt_fm_envelope_modulador(&ctx, 2, 0.0f, 0.06f, 0.0f, 0.0f);
-    pt_definir_envelope(&ctx, 2, 0.001f, 0.25f, 0.0f, 0.05f);
-    pt_definir_pan(&ctx, 2, 0.0f);
-
-    /* Canal 3: noise */
-    pt_definir_envelope(&ctx, 3, 0.001f, 0.08f, 0.0f, 0.02f);
-
-    /* ── Padrão A: marcha de masmorra (Mi menor, 86 BPM) ── */
+    /* ── Padrão A: marcha de masmorra (Mi menor, 86 BPM) ─────────── */
     PT_Padrao marcha;
     pt_iniciar_padrao(&marcha, 86);
 
-    PT_NOTA_F(marcha, 0, PT_MI4,  PT_SEMICOLCHEIA, 10, PT_ONDA_FM);
-    PT_NOTA_F(marcha, 0, PT_MI4,  PT_SEMICOLCHEIA, 10, PT_ONDA_FM);
-    PT_NOTA_F(marcha, 0, PT_SOL4, PT_COLCHEIA,     11, PT_ONDA_FM);
-    PT_NOTA_F(marcha, 0, PT_LA4,  PT_COLCHEIA,     11, PT_ONDA_FM);
-    PT_NOTA_F(marcha, 0, PT_SI4,  PT_COLCHEIA,     11, PT_ONDA_FM);
-    PT_NOTA_F(marcha, 0, PT_LA4,  PT_SEMICOLCHEIA, 10, PT_ONDA_FM);
-    PT_NOTA_F(marcha, 0, PT_SOL4, PT_SEMICOLCHEIA, 10, PT_ONDA_FM);
-    PT_NOTA_F(marcha, 0, PT_MI4,  PT_COLCHEIA,     10, PT_ONDA_FM);
-    PT_NOTA_F(marcha, 0, PT_RE4,  PT_COLCHEIA,      9, PT_ONDA_FM);
-    PT_NOTA_F(marcha, 0, PT_MI4,  PT_MINIMA,       10, PT_ONDA_FM);
+    PT_MEL_FM(marcha, 0,
+        PT_MI4,SC,10,  PT_MI4,SC,10,  PT_SOL4,CL,11,  PT_LA4,CL,11,
+        PT_SI4,CL,11,  PT_LA4,SC,10,  PT_SOL4,SC,10,  PT_MI4,CL,10,
+        PT_RE4,CL, 9,  PT_MI4,MN,10
+    );
 
-    PT_NOTA_F(marcha, 1, PT_SI3,  PT_COLCHEIA,     6, PT_ONDA_FM);
-    PT_NOTA_F(marcha, 1, PT_DO4,  PT_COLCHEIA,     6, PT_ONDA_FM);
-    PT_NOTA_F(marcha, 1, PT_RE4,  PT_MINIMA,       6, PT_ONDA_FM);
-    PT_NOTA_F(marcha, 1, PT_DO4,  PT_COLCHEIA,     5, PT_ONDA_FM);
-    PT_NOTA_F(marcha, 1, PT_SI3,  PT_COLCHEIA,     5, PT_ONDA_FM);
-    PT_NOTA_F(marcha, 1, PT_LA3,  PT_COLCHEIA,     5, PT_ONDA_FM);
-    PT_NOTA_F(marcha, 1, PT_SI3,  PT_MINIMA,       6, PT_ONDA_FM);
+    /* Harmonia strings */
+    PT_Stream hs = pt_stream(&marcha, 1, FM, 6);
+    pt_s(&hs,PT_SI3,CL); pt_s(&hs,PT_DO4,CL); pt_s(&hs,PT_RE4,MN);
+    pt_s(&hs,PT_DO4,CL); pt_s(&hs,PT_SI3,CL); pt_s(&hs,PT_LA3,CL);
+    pt_s(&hs,PT_SI3,MN);
 
-    float bass_A[] = { PT_MI2, PT_SI2, PT_MI2, PT_SI2,
-                       PT_LA2, PT_MI2, PT_LA2, PT_SI2 };
-    for (int b = 0; b < 8; b++)
-        PT_NOTA_F(marcha, 2, bass_A[b], PT_COLCHEIA, 11, PT_ONDA_FM);
-    for (int b = 0; b < 8; b++) {
-        PT_NOTA_F(marcha, 3, 180.0f,  PT_COLCHEIA,   11, PT_RUIDO_LFSR);
-        PT_NOTA_F(marcha, 3, 1800.0f, PT_COLCHEIA, (b%2==1)?10:4, PT_RUIDO_BRANCO);
-    }
+    PT_OSTINATO(marcha, 2, FM, 8.0f,
+        PT_MI2,CL,11,  PT_SI2,CL,11,  PT_MI2,CL,11,  PT_SI2,CL,11,
+        PT_LA2,CL,11,  PT_MI2,CL,11,  PT_LA2,CL,11,  PT_SI2,CL,11
+    );
+    PT_OSTINATO(marcha, 3, NB, 8.0f,
+        180.0f,CL,11,  1800.0f,CL,10
+    );
 
-    /* ── Padrão B: tema da masmorra (80 BPM) ── */
+    /* ── Padrão B: tema da masmorra (80 BPM) ─────────────────────── */
     PT_Padrao tema;
     pt_iniciar_padrao(&tema, 80);
 
-    PT_NOTA_F(tema, 0, PT_MI5,  PT_COLCHEIA,   11, PT_ONDA_FM);
-    PT_NOTA_F(tema, 0, PT_RE5,  PT_SEMICOLCHEIA,10, PT_ONDA_FM);
-    PT_NOTA_F(tema, 0, PT_DO5,  PT_SEMICOLCHEIA, 9, PT_ONDA_FM);
-    PT_NOTA_F(tema, 0, PT_RE5,  PT_COLCHEIA,   10, PT_ONDA_FM);
-    PT_NOTA_F(tema, 0, PT_MI5,  PT_COLCHEIA,   11, PT_ONDA_FM);
-    PT_NOTA_F(tema, 0, PT_FA5,  PT_COLCHEIA,   11, PT_ONDA_FM);
-    PT_NOTA_F(tema, 0, PT_MI5,  PT_COLCHEIA,   10, PT_ONDA_FM);
-    PT_NOTA_F(tema, 0, PT_RE5,  PT_MINIMA,     10, PT_ONDA_FM);
-    PT_NOTA_F(tema, 0, PT_DO5,  PT_COLCHEIA,    9, PT_ONDA_FM);
-    PT_NOTA_F(tema, 0, PT_SI4,  PT_COLCHEIA,    9, PT_ONDA_FM);
-    PT_NOTA_F(tema, 0, PT_DO5,  PT_MINIMA,     10, PT_ONDA_FM);
-    PT_NOTA_F(tema, 0, PT_MI5,  PT_COLCHEIA,   11, PT_ONDA_FM);
-    PT_NOTA_F(tema, 0, PT_RE5,  PT_MINIMA_P,   10, PT_ONDA_FM);
+    PT_MEL_FM(tema, 0,
+        PT_MI5,CL,11,  PT_RE5,SC,10,  PT_DO5,SC, 9,  PT_RE5,CL,10,
+        PT_MI5,CL,11,  PT_FA5,CL,11,  PT_MI5,CL,10,  PT_RE5,MN,10,
+        PT_DO5,CL, 9,  PT_SI4,CL, 9,  PT_DO5,MN,10,
+        PT_MI5,CL,11,  PT_RE5,MNP,10
+    );
 
-    PT_NOTA_F(tema, 1, PT_DO5,  PT_MINIMA,      6, PT_ONDA_FM);
-    PT_NOTA_F(tema, 1, PT_SI4,  PT_MINIMA,      5, PT_ONDA_FM);
-    PT_NOTA_F(tema, 1, PT_LA4,  PT_SEMIBREVE,   6, PT_ONDA_FM);
-    PT_NOTA_F(tema, 1, PT_SOL4, PT_MINIMA,      5, PT_ONDA_FM);
-    PT_NOTA_F(tema, 1, PT_FAS4, PT_MINIMA,      5, PT_ONDA_FM);
-    PT_NOTA_F(tema, 1, PT_SOL4, PT_MINIMA_P,    6, PT_ONDA_FM);
+    PT_Stream ht = pt_stream(&tema, 1, FM, 6);
+    pt_s(&ht,PT_DO5,MN); pt_s(&ht,PT_SI4,MN); pt_s(&ht,PT_LA4,SB);
+    pt_s(&ht,PT_SOL4,MN);pt_s(&ht,PT_FAS4,MN);pt_s(&ht,PT_SOL4,MNP);
 
-    float bass_B[] = { PT_LA2, PT_MI3, PT_LA2, PT_MI3,
-                       PT_RE3, PT_LA3, PT_RE3, PT_SI3 };
-    for (int b = 0; b < 8; b++)
-        PT_NOTA_F(tema, 2, bass_B[b], PT_COLCHEIA, 10, PT_ONDA_FM);
-    for (int b = 0; b < 8; b++) {
-        PT_NOTA_F(tema, 3, 180.0f, PT_SEMICOLCHEIA, 11, PT_RUIDO_LFSR);
-        PT_NOTA_F(tema, 3, 1800.0f,PT_SEMICOLCHEIA,(b%2==1)?9:3, PT_RUIDO_BRANCO);
-        PT_NOTA_F(tema, 3, 6000.0f,PT_SEMICOLCHEIA, 3, PT_RUIDO_BRANCO);
-        PT_NOTA_F(tema, 3, 6000.0f,PT_SEMICOLCHEIA, 3, PT_RUIDO_BRANCO);
-    }
+    PT_OSTINATO(tema, 2, FM, 8.0f,
+        PT_LA2,CL,10,  PT_MI3,CL,10,  PT_LA2,CL,10,  PT_MI3,CL,10,
+        PT_RE3,CL,10,  PT_LA3,CL,10,  PT_RE3,CL,10,  PT_SI3,CL,10
+    );
+    PT_OSTINATO(tema, 3, NB, 8.0f,
+        180.0f,SC,11,  1800.0f,SC,10,  6000.0f,SC,3,  6000.0f,SC,3
+    );
 
-    /* ── Padrão C: corredor de armadilhas (100 BPM) ── */
+    /* ── Padrão C: corredor (100 BPM) ─────────────────────────────── */
     PT_Padrao corredor;
     pt_iniciar_padrao(&corredor, 100);
 
-    PT_NOTA_F(corredor, 0, PT_LA5,  PT_SEMICOLCHEIA, 11, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 0, PT_SOL5, PT_SEMICOLCHEIA, 10, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 0, PT_FA5,  PT_SEMICOLCHEIA, 10, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 0, PT_MI5,  PT_SEMICOLCHEIA, 11, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 0, PT_RE5,  PT_SEMICOLCHEIA, 10, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 0, PT_MI5,  PT_SEMICOLCHEIA, 10, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 0, PT_FA5,  PT_SEMICOLCHEIA, 11, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 0, PT_SOL5, PT_SEMICOLCHEIA, 10, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 0, PT_LA5,  PT_COLCHEIA,     11, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 0, PT_SOL5, PT_SEMICOLCHEIA, 10, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 0, PT_LA5,  PT_SEMICOLCHEIA, 11, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 0, PT_SI5,  PT_COLCHEIA,     12, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 0, PT_DO6,  PT_SEMICOLCHEIA, 12, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 0, PT_SI5,  PT_SEMICOLCHEIA, 11, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 0, PT_LA5,  PT_MINIMA,       11, PT_ONDA_FM);
+    PT_MEL_FM(corredor, 0,
+        PT_LA5,SC,11,  PT_SOL5,SC,10,  PT_FA5,SC,10,  PT_MI5,SC,11,
+        PT_RE5,SC,10,  PT_MI5,SC,10,   PT_FA5,SC,11,  PT_SOL5,SC,10,
+        PT_LA5,CL,11,  PT_SOL5,SC,10,  PT_LA5,SC,11,  PT_SI5,CL,12,
+        PT_DO6,SC,12,  PT_SI5,SC,11,   PT_LA5,MN,11
+    );
 
-    PT_NOTA_F(corredor, 1, PT_MI5, PT_COLCHEIA,  7, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 1, PT_RE5, PT_COLCHEIA,  6, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 1, PT_DO5, PT_COLCHEIA,  6, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 1, PT_RE5, PT_MINIMA,    7, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 1, PT_MI5, PT_COLCHEIA,  7, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 1, PT_FAS5,PT_COLCHEIA,  8, PT_ONDA_FM);
-    PT_NOTA_F(corredor, 1, PT_SOL5,PT_SEMIBREVE, 8, PT_ONDA_FM);
+    PT_Stream hc = pt_stream(&corredor, 1, FM, 7);
+    pt_s(&hc,PT_MI5,CL); pt_s(&hc,PT_RE5,CL); pt_s(&hc,PT_DO5,CL);
+    pt_s(&hc,PT_RE5,MN); pt_s(&hc,PT_MI5,CL); pt_s(&hc,PT_FAS5,CL);
+    pt_s(&hc,PT_SOL5,SB);
 
-    float bass_C[] = { PT_LA2, PT_LA2, PT_MI3, PT_MI3,
-                       PT_FA3, PT_FA3, PT_MI3, PT_RE3 };
-    for (int b = 0; b < 8; b++)
-        PT_NOTA_F(corredor, 2, bass_C[b], PT_COLCHEIA, 11, PT_ONDA_FM);
-    for (int b = 0; b < 8; b++) {
-        PT_NOTA_F(corredor, 3, 200.0f,  PT_SEMICOLCHEIA, 12, PT_RUIDO_LFSR);
-        PT_NOTA_F(corredor, 3, 2000.0f, PT_SEMICOLCHEIA, 10, PT_RUIDO_BRANCO);
-        PT_NOTA_F(corredor, 3, 6500.0f, PT_SEMICOLCHEIA,  4, PT_RUIDO_BRANCO);
-        PT_NOTA_F(corredor, 3, 6500.0f, PT_SEMICOLCHEIA,  4, PT_RUIDO_BRANCO);
-    }
+    PT_OSTINATO(corredor, 2, FM, 8.0f,
+        PT_LA2,CL,11,  PT_LA2,CL,11,  PT_MI3,CL,11,  PT_MI3,CL,11,
+        PT_FA3,CL,11,  PT_FA3,CL,11,  PT_MI3,CL,11,  PT_RE3,CL,11
+    );
+    PT_OSTINATO(corredor, 3, NB, 8.0f,
+        200.0f,SC,12,  2000.0f,SC,10,  6500.0f,SC,4,  6500.0f,SC,4
+    );
 
-    /* ── Padrão D: sala do boss (68 BPM) ── */
+    /* ── Padrão D: sala do boss (68 BPM) ─────────────────────────── */
     PT_Padrao boss;
     pt_iniciar_padrao(&boss, 68);
 
-    PT_NOTA_F(boss, 0, PT_MI4,  PT_COLCHEIA,   11, PT_ONDA_FM);
-    PT_PAUSA (boss, 0, PT_SEMICOLCHEIA);
-    PT_NOTA_F(boss, 0, PT_MI4,  PT_SEMICOLCHEIA,11, PT_ONDA_FM);
-    PT_NOTA_F(boss, 0, PT_SOL4, PT_COLCHEIA,   11, PT_ONDA_FM);
-    PT_PAUSA (boss, 0, PT_SEMICOLCHEIA);
-    PT_NOTA_F(boss, 0, PT_FA4,  PT_SEMICOLCHEIA,10, PT_ONDA_FM);
-    PT_NOTA_F(boss, 0, PT_MI4,  PT_MINIMA,     10, PT_ONDA_FM);
-    PT_NOTA_F(boss, 0, PT_RE4,  PT_COLCHEIA,    9, PT_ONDA_FM);
-    PT_NOTA_F(boss, 0, PT_DO4,  PT_COLCHEIA,    9, PT_ONDA_FM);
-    PT_NOTA_F(boss, 0, PT_SI3,  PT_COLCHEIA,    8, PT_ONDA_FM);
-    PT_NOTA_F(boss, 0, PT_LA3,  PT_MINIMA_P,   10, PT_ONDA_FM);
+    PT_Stream mb = pt_stream(&boss, 0, FM, 11);
+    pt_s(&mb,PT_MI4,CL);  pt_s_p(&mb,SC);  pt_s(&mb,PT_MI4,SC);
+    pt_s(&mb,PT_SOL4,CL); pt_s_p(&mb,SC);  pt_s(&mb,PT_FA4,SC);
+    pt_s(&mb,PT_MI4,MN);
+    pt_s(&mb,PT_RE4,CL); pt_s(&mb,PT_DO4,CL); pt_s(&mb,PT_SI3,CL);
+    pt_s_v(&mb,PT_LA3,MNP,12);  /* nota final mais forte */
 
-    PT_NOTA_F(boss, 1, PT_DO4,  PT_MINIMA,      6, PT_ONDA_FM);
-    PT_NOTA_F(boss, 1, PT_RE4,  PT_MINIMA,      6, PT_ONDA_FM);
-    PT_NOTA_F(boss, 1, PT_DO4,  PT_MINIMA,      5, PT_ONDA_FM);
-    PT_NOTA_F(boss, 1, PT_SI3,  PT_MINIMA,      5, PT_ONDA_FM);
-    PT_NOTA_F(boss, 1, PT_LA3,  PT_MINIMA,      6, PT_ONDA_FM);
-    PT_NOTA_F(boss, 1, PT_SOL3, PT_MINIMA_P,    5, PT_ONDA_FM);
+    PT_Stream hb = pt_stream(&boss, 1, FM, 6);
+    pt_s(&hb,PT_DO4,MN); pt_s(&hb,PT_RE4,MN); pt_s(&hb,PT_DO4,MN);
+    pt_s(&hb,PT_SI3,MN); pt_s(&hb,PT_LA3,MN); pt_s(&hb,PT_SOL3,MNP);
 
-    for (int b = 0; b < 4; b++) {
-        PT_NOTA_F(boss, 2, PT_MI2, PT_COLCHEIA, 12, PT_ONDA_FM);
-        PT_NOTA_F(boss, 2, PT_MI2, PT_COLCHEIA, 11, PT_ONDA_FM);
-        PT_NOTA_F(boss, 2, PT_LA2, PT_COLCHEIA, 11, PT_ONDA_FM);
-        PT_NOTA_F(boss, 2, PT_SI2, PT_COLCHEIA, 10, PT_ONDA_FM);
-    }
-    for (int b = 0; b < 4; b++) {
-        PT_NOTA_F(boss, 3, 100.0f,  PT_COLCHEIA, 12, PT_RUIDO_LFSR);
-        PT_NOTA_F(boss, 3, 1500.0f, PT_COLCHEIA,  9, PT_RUIDO_BRANCO);
-        PT_NOTA_F(boss, 3, 100.0f,  PT_COLCHEIA, 11, PT_RUIDO_LFSR);
-        PT_NOTA_F(boss, 3, 6000.0f, PT_COLCHEIA,  3, PT_RUIDO_BRANCO);
-    }
+    PT_OSTINATO(boss, 2, FM, 8.0f,
+        PT_MI2,CL,12,  PT_MI2,CL,11,  PT_LA2,CL,11,  PT_SI2,CL,10
+    );
+    PT_OSTINATO(boss, 3, NL, 8.0f,
+        100.0f,CL,12,  1500.0f,CL,9,  100.0f,CL,11,  6000.0f,CL,3
+    );
 
-    /* ── Montagem ── */
+    /* Fade in nas dinâmicas do boss */
+    pt_fade_in_padrao(&boss, 0, 7, 12);
+
+    /* ── Montagem ─────────────────────────────────────────────────── */
     PT_Musica musica;
     pt_iniciar_musica(&musica);
     pt_adicionar_padrao_musica(&musica, &marcha,   1);
@@ -190,8 +128,7 @@ int main(void) {
 
     int frames = pt_renderizar_musica_wav(
         &ctx, &musica, "dungeon_crawler.wav", 300.0f);
-    printf("Dungeon Crawler  —  %.2fs\nArquivo: dungeon_crawler.wav\n",
-           (float)frames / 44100.0f);
+    printf("Dungeon Crawler — %.2fs\n", (float)frames / 44100.0f);
     pt_destruir_contexto(&ctx);
     return 0;
 }
